@@ -117,5 +117,5 @@ docker-compose up -d
 ## Timeline
 The project is to be completed within **7 days**.
 
-For any questions, please reach out to the project maintainer.
+For any questions, please reach out to boban.
 
