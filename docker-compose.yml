@@ -1,0 +1,73 @@
+version: '3'
+
+services:
+  db_postgres:
+    container_name: 'db_boilerplate'
+    image: 'postgres:14.2-alpine'
+    restart: always
+    env_file:
+      - ./src/backend/.env
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: ${PG_DB}
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./database/boilerplate:/var/lib/postgresql/data/
+
+  be_boilerplate:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    entrypoint: /bin/sh './scripts/be-node-dev.sh'
+    ports:
+      - "4000:4000"          # Expose your app on port 4000
+      - "5555:5555"          # Expose your app on port 4000
+    volumes:
+      - ./src/backend:/app               # Sync local files with the container
+      - /app/node_modules     # Prevents overwriting node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - db_postgres
+      - kafka
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  fe_boilerplate:
+    container_name: 'fe_boilerplate'
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./src/frontend:/app
+    stdin_open: true
+    tty: true
+    depends_on:
+      - be_boilerplate
+networks:
+  complete:
+    external: true
